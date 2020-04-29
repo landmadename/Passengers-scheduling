@@ -10,26 +10,27 @@ from load_user_data import load_user_data
 from load_driver_data import load_driver_data
 import caculate
 
-# @profile
-def test():
-    # %%
-    class officer(object):
-        def __init__(self):
-            self.users = load_user_data()
-            self.users_backup = copy.deepcopy(self.users)
-            self.drivers = load_driver_data()
-            self.drivers_backup = copy.deepcopy(self.drivers)
-            self.the_maps = []
-        def update_map(self):
-            self.the_maps = caculate.kmeans(self.users)
+
+# %%
+class officer(object):
+    def __init__(self):
+        self.users = load_user_data()
+        self.users_backup = copy.deepcopy(self.users)
+        self.drivers = load_driver_data()
+        self.drivers_backup = copy.deepcopy(self.drivers)
+        self.the_maps = []
+    def update_map(self):
+        self.the_maps = caculate.kmeans(self.users)
 
 
-    # %%
-    pdw = officer()
-    debug = True
+# %%
+pdw = officer()
+debug = True
+max_distance = 0.12  # 2km
 
 
-    # %%
+# %%
+def kmeans_distribute(pdw):
     table = []
     while(pdw.users != []):
         pdw.update_map()
@@ -62,41 +63,43 @@ def test():
                     closest_user = caculate.find_closest_obj(center, pdw.users)
                     table.append([closest_user,closest_driver])
                     pdw.users.remove(closest_user)
-    if (debug == "True"):
-        # 画出所有用户的位置
-        coordinates = [i["coordinate"] for i in pdw.users_backup]
-        x,y = zip(*coordinates)
-        plt.scatter(x,y)
-        # 画出所有中心的位置
-        if (pdw.the_maps!=[]):
-            coordinates = [i["coordinate"] for i in pdw.the_maps]
+        if (debug == True):
+            # 画出所有用户的位置
+            coordinates = [i["coordinate"] for i in pdw.users_backup]
             x,y = zip(*coordinates)
-            plt.scatter(x,y,c = 'r')
-        # for i in range(len(x)):
-        #     plt.annotate('C'+str(i + 1),(x[i],y[i]))
-        # 画出所有司机的位置
-        coordinates = [i["coordinate"] for i in pdw.drivers_backup]
-        x,y = zip(*coordinates)
-        plt.scatter(x,y,c = 'y')
-        # 画出当前中心的位置
-        plt.scatter(center["coordinate"][0],center["coordinate"][1],c='k')
-        # for i in range(len(x)):
-        #     plt.annotate('D'+str(i + 1),(x[i],y[i]))
-        # 连接已经分配好的司机和用户
-        for user,driver in table:
-            x,y = zip(user["coordinate"],driver["coordinate"])
-            plt.plot(x,y,color='b')
-        plt.xticks(np.arange(104.000,104.150,0.025))
-        plt.yticks(np.arange(30.600,30.750,0.025))
-        plt.gca().set_aspect(1)
-        plt.show()
-        
+            plt.scatter(x,y)
+            # 画出所有中心的位置
+            if (pdw.the_maps!=[]):
+                coordinates = [i["coordinate"] for i in pdw.the_maps]
+                x,y = zip(*coordinates)
+                plt.scatter(x,y,c = 'r')
+            # for i in range(len(x)):
+            #     plt.annotate('C'+str(i + 1),(x[i],y[i]))
+            # 画出所有司机的位置
+            coordinates = [i["coordinate"] for i in pdw.drivers_backup]
+            x,y = zip(*coordinates)
+            plt.scatter(x,y,c = 'y')
+            # 画出当前中心的位置
+            plt.scatter(center["coordinate"][0],center["coordinate"][1],c='k')
+            # for i in range(len(x)):
+            #     plt.annotate('D'+str(i + 1),(x[i],y[i]))
+            # 连接已经分配好的司机和用户
+            for user,driver in table:
+                x,y = zip(user["coordinate"],driver["coordinate"])
+                plt.plot(x,y,color='b')
+            plt.xticks(np.arange(104.000,104.150,0.025))
+            plt.yticks(np.arange(30.600,30.750,0.025))
+            plt.gca().set_aspect(1)
+            plt.show()
+    return table
+# table = kmeans_distribute(pdw)
 
 
-    # %%
+# %%
+def optimize(table):
+    table.sort(key=lambda e:e[1]["id"])
     for XXX in range(2):
         for idx in range(len(table)):
-            table.sort(key=lambda e:e[1]["id"])
             point_a, point_a_driver = table[idx]
             # print(sum([caculate.geodesic(i[0],i[1]) for i in table]))
             # raw
@@ -131,11 +134,32 @@ def test():
                 index_of_line_b = difference.index(max(difference))
                 line_b = table[index_of_line_b]
                 # exchange
-                table[idx] = [point_a, line_b[1]]
-                table[index_of_line_b] = [line_b[0], point_a_driver]
+                table[index_of_line_b] = [point_a, line_b[1]]
+                table[idx] = [line_b[0], point_a_driver]
+                if(debug==True):
+                    coordinates = [i["coordinate"] for i in pdw.users_backup]
+                    x,y = zip(*coordinates)
+                    plt.scatter(x,y)
+                    coordinates = [i["coordinate"] for i in pdw.drivers_backup]
+                    x,y = zip(*coordinates)
+                    plt.scatter(x,y,c = 'y')
+                    for user,driver in table:
+                        x,y = zip(user["coordinate"],driver["coordinate"])
+                        plt.plot(x,y,color='b')
+                    plt.xticks(np.arange(104.000,104.150,0.025))
+                    plt.yticks(np.arange(30.600,30.750,0.025))
+                    plt.gca().set_aspect(1)
+                    plt.show()
+    return table
+# table = optimize(table)
 
 
-    # %%
+# %%
+def handel_too_far(pdw, table):
+    [pdw.users.append(i[0]) for i in table if caculate.geodesic(i[0],i[1])>max_distance]
+    table = [i for i in table if caculate.geodesic(i[0],i[1])<max_distance]
+    too_far=kmeans_distribute(pdw)
+    table = table+too_far
     if(debug==True):
         coordinates = [i["coordinate"] for i in pdw.users_backup]
         x,y = zip(*coordinates)
@@ -150,6 +174,14 @@ def test():
         plt.yticks(np.arange(30.600,30.750,0.025))
         plt.gca().set_aspect(1)
         plt.show()
+    return table
+# table = handel_too_far(pdw, table)
 
 
-test()
+# %%
+def run():
+    table = kmeans_distribute(pdw)
+    table = optimize(table)
+    table = handel_too_far(pdw, table)
+
+
