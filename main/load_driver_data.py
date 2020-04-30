@@ -1,4 +1,4 @@
-from random_coordinates_generator import random_coordinates_generator 
+from coordinates_generator import random_coordinates_generator,matrix_coordinates_generator
 import random
 
 
@@ -9,8 +9,30 @@ def load_driver_data():
         driver = {
             "id" : e,
             "coordinate" : i,
-            "order" : e,
+            # "order" : e,
             "sites" : random.choice([4,6])
         }
         drivers.append(driver)
     return drivers
+
+
+def load_matrix_drivers(users):
+    users = [i["coordinate"] for i in users]
+    x,y = zip(*users)
+    xRange = max(x),min(x)
+    yRange = max(y),min(y)
+
+    coordinates = matrix_coordinates_generator(xRange, yRange)
+    drivers_dict = {}
+    for site in [4,6]:
+        drivers = []
+        for e,i in enumerate(coordinates):
+            driver = {
+                "id" : len(coordinates)+e,
+                "coordinate" : i,
+                # "order" : e,
+                "sites" : site
+            }
+            drivers.append(driver)
+        drivers_dict[site] = drivers
+    return drivers_dict

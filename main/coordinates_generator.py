@@ -5,11 +5,18 @@
 # 104.147461 104.004307
 # 30.740067 30.604392
 import random
+import numpy as np
+import itertools
 
 
 def random_coordinates_generator(length, xRange=(104.15, 104.00), yRange=(30.75, 30.60)):
-    import random
     x = [random.uniform(xRange[0], xRange[1]) for i in range(length)]
     y = [random.uniform(yRange[0], yRange[1]) for i in range(length)]
     coordinates = [list(i) for i in zip(x, y)]
+    return coordinates
+
+def matrix_coordinates_generator(xRange=(104.15, 104.00), yRange=(30.75, 30.60)):
+    x = np.arange(xRange[1], xRange[0], 0.003)
+    y = np.arange(yRange[1], yRange[0], 0.003)
+    coordinates = [list(i) for i in itertools.product(x,y)]
     return coordinates

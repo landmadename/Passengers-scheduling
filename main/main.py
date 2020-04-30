@@ -7,26 +7,34 @@ from sklearn.cluster import KMeans
 import copy
 
 from load_user_data import load_user_data
-from load_driver_data import load_driver_data
+from load_driver_data import load_driver_data, load_matrix_drivers
 import caculate
 
 
 # %%
 class officer(object):
     def __init__(self):
-        self.users = load_user_data()
-        self.users_backup = copy.deepcopy(self.users)
-        self.drivers = load_driver_data()
-        self.drivers_backup = copy.deepcopy(self.drivers)
-        self.the_maps = []
+        self.type = ""
     def update_map(self):
         self.the_maps = caculate.kmeans(self.users)
+    def update_users(self):
+        self.users = load_user_data()
+        self.users_backup = copy.deepcopy(self.users)
+    def update_drivers(self):
+        self.drivers = load_driver_data()
+        self.sites_count = sorted([i["sites"] for i in self.drivers])
+        if (self.type == 'send'):
+            self.matrix_drivers = load_matrix_drivers(self.users)
+        self.drivers_backup = copy.deepcopy(self.drivers)
 
 
 # %%
-pdw = officer()
 debug = True
 max_distance = 0.12  # 2km
+pdw = officer()
+pdw.type = 'send'
+pdw.update_users()
+pdw.update_drivers()
 
 
 # %%
@@ -38,8 +46,13 @@ def kmeans_distribute(pdw):
         user_box = []
         # 取出一个中心点和最近的司机
         center = pdw.the_maps.pop(0)
-        closest_driver = caculate.find_closest_obj(center, pdw.drivers)
-        pdw.drivers.remove(closest_driver)
+        if (pdw.type == "take"):
+            closest_driver = caculate.find_closest_obj(center, pdw.drivers)
+            pdw.drivers.remove(closest_driver)
+        elif (pdw.type == "send"):
+            site = pdw.sites_count.pop(0)
+            closest_driver = caculate.find_closest_obj(center, pdw.matrix_drivers[site])
+            pdw.matrix_drivers[site].remove(closest_driver)
         # 如果该中心的cluster的用户数量大于司机的座位数量
         if (len(center["users"])>=closest_driver["sites"]): 
             # 把距离司机最近的用户分配给司机
@@ -63,7 +76,7 @@ def kmeans_distribute(pdw):
                     closest_user = caculate.find_closest_obj(center, pdw.users)
                     table.append([closest_user,closest_driver])
                     pdw.users.remove(closest_user)
-        if (debug == True):
+        if (debug == "True"):
             # 画出所有用户的位置
             coordinates = [i["coordinate"] for i in pdw.users_backup]
             x,y = zip(*coordinates)
@@ -92,7 +105,7 @@ def kmeans_distribute(pdw):
             plt.gca().set_aspect(1)
             plt.show()
     return table
-# table = kmeans_distribute(pdw)
+table = kmeans_distribute(pdw)
 
 
 # %%
@@ -136,7 +149,7 @@ def optimize(table):
                 # exchange
                 table[index_of_line_b] = [point_a, line_b[1]]
                 table[idx] = [line_b[0], point_a_driver]
-                if(debug==True):
+                if(debug=="True"):
                     coordinates = [i["coordinate"] for i in pdw.users_backup]
                     x,y = zip(*coordinates)
                     plt.scatter(x,y)
@@ -151,7 +164,7 @@ def optimize(table):
                     plt.gca().set_aspect(1)
                     plt.show()
     return table
-# table = optimize(table)
+table = optimize(table)
 
 
 # %%
@@ -160,7 +173,7 @@ def handel_too_far(pdw, table):
     table = [i for i in table if caculate.geodesic(i[0],i[1])<max_distance]
     too_far=kmeans_distribute(pdw)
     table = table+too_far
-    if(debug==True):
+    if(debug=="True"):
         coordinates = [i["coordinate"] for i in pdw.users_backup]
         x,y = zip(*coordinates)
         plt.scatter(x,y)
@@ -175,13 +188,44 @@ def handel_too_far(pdw, table):
         plt.gca().set_aspect(1)
         plt.show()
     return table
-# table = handel_too_far(pdw, table)
+table = handel_too_far(pdw, table)
 
 
 # %%
-def run():
-    table = kmeans_distribute(pdw)
-    table = optimize(table)
-    table = handel_too_far(pdw, table)
+import collections
+def exchage_drivers(pdw, table):
+    maxtrix_drivers = list(set([(i[1]["id"],i[1]["sites"]) for i in table]))
+    maxtrix_drivers.sort(key=lambda e:e[1])
+    maxtrix_drivers = [i[0] for i in maxtrix_drivers]
+    pdw_drivers = [(i["id"],i["sites"]) for i in pdw.drivers]
+    pdw_drivers.sort(key=lambda e:e[1])
+    pdw_drivers = [i[0] for i in pdw_drivers]
+    map_dict = dict(list(zip(maxtrix_drivers,pdw_drivers)))
+    new_table = []
+    for u,d in table:
+        d = copy.deepcopy(d)
+        d["id"] = map_dict[d["id"]]
+        new_table.append([u,d])
+    if(debug==True):
+        coordinates = [i["coordinate"] for i in pdw.users_backup]
+        x,y = zip(*coordinates)
+        plt.scatter(x,y)
+        for user,driver in new_table:
+            x,y = zip(user["coordinate"],driver["coordinate"])
+            plt.plot(x,y,color='b')
+        plt.xticks(np.arange(104.000,104.150,0.025))
+        plt.yticks(np.arange(30.600,30.750,0.025))
+        plt.gca().set_aspect(1)
+        plt.show()
+    return new_table
+table = exchage_drivers(pdw, table)
+
+
+# %%
+# def run():
+#     table = kmeans_distribute(pdw)
+#     table = optimize(table)
+#     table = handel_too_far(pdw, table)
+#     table = exchage_drivers(pdw, table)
 
 

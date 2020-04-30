@@ -22,7 +22,7 @@ def teke_coordinate(elem):
 def kmeans(data):
     users_data = data
     data = np.array([i["coordinate"] for i in data])
-    k = int(len(data)/5) + 1
+    k = round(len(data)/5) + 1
     # print(data,k)
     # print()
     model1 = KMeans(n_clusters=k, n_init=10)
