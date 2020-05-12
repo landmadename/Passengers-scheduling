@@ -5,7 +5,6 @@ from itertools import combinations
 import math
 
 def geodesic(a,b):
-    # print(a,b)
     if isinstance(a, dict):
         a = a["coordinate"]
         b = b["coordinate"]
@@ -23,8 +22,6 @@ def kmeans(data):
     users_data = data
     data = np.array([i["coordinate"] for i in data])
     k = round(len(data)/5) + 1
-    # print(data,k)
-    # print()
     model1 = KMeans(n_clusters=k, n_init=10)
     model1.fit(data)
     clusters = model1.predict(data)
@@ -66,5 +63,4 @@ def mean_square_difference(data):
     elif len(data)==0:
         return 0
     else:
-        # return np.std(data, ddof=1)
         return sum([i*i for i in data])/len(data)
