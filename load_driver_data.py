@@ -1,8 +1,13 @@
+# 载入司机数据
+
 from coordinates_generator import random_coordinates_generator,matrix_coordinates_generator
 import random
 
 
 def load_driver_data():
+    """
+    载入司机数据
+    """
     coordinates = random_coordinates_generator(25)
     drivers = []
     for e,i in enumerate(coordinates):
@@ -17,6 +22,9 @@ def load_driver_data():
 
 
 def load_matrix_drivers(users):
+    """
+    载入矩阵司机数据
+    """
     users = [i["coordinate"] for i in users]
     x,y = zip(*users)
     xRange = max(x),min(x)

@@ -1,6 +1,10 @@
 # To add a new cell, type '# %%'
 # To add a new markdown cell, type '# %% [markdown]'
 # %%
+# 一个调度系统。给出乘客的坐标，司机的坐标和座位数 返回乘客与司机的绑定关系
+
+
+# %%
 import numpy as np
 import collections
 from matplotlib import pyplot as plt
@@ -14,6 +18,9 @@ import caculate
 
 # %%
 class officer(object):
+    """
+    调度员对象
+    """
     def __init__(self):
         self.type = ""
     def update_map(self):
@@ -31,7 +38,14 @@ class officer(object):
 
 # %%
 def draw(officer, table):
-    # 画出所有用户的位置
+    """
+    画出所有用户的位置
+
+    参数
+    ----------
+    officer : 调度员对象
+    table : 司机与乘客的绑定表
+    """
     coordinates = [i["coordinate"] for i in officer.users_backup]
     x,y = zip(*coordinates)
     plt.scatter(x,y)
@@ -52,6 +66,17 @@ def draw(officer, table):
 
 # %%
 def kmeans_distribute(officer):
+    """
+    基于Kmeans给司机分配乘客
+
+    参数
+    ----------
+    officer : 调度员对象
+
+    返回
+    ----------
+    table : 司机与乘客的绑定表
+    """
     table = []
     while(officer.users != []):
         officer.update_map()
@@ -97,6 +122,18 @@ def kmeans_distribute(officer):
 
 # %%
 def optimize(officer, table):
+    """
+    优化绑定表
+
+    参数
+    ----------
+    officer : 调度员对象
+    table : 司机与乘客的绑定表
+
+    返回
+    ----------
+    table : 优化后的司机与乘客的绑定表
+    """
     table.sort(key=lambda e:e[1]["id"])
     for XXX in range(2):  # 多轮优化
         for idx in range(len(table)):
@@ -143,6 +180,19 @@ def optimize(officer, table):
 
 # %%
 def handel_too_far(officer, table, max_distance):
+    """
+    处理距离司机太远的乘客
+
+    参数
+    ----------
+    officer : 调度员对象
+    table : 司机与乘客的绑定表
+    max_distance : 超过多远算太远
+
+    返回
+    ----------
+    table : 新的司机与乘客的绑定表
+    """
     too_far_users = [i for i in table if caculate.geodesic(i[0],i[1])>max_distance]
     while (too_far_users != []):
         # 从table里去掉太远的点，送回用户池
@@ -160,6 +210,18 @@ def handel_too_far(officer, table, max_distance):
 
 # %%
 def fill_in_drivers(officer, table):
+    """
+    用真实司机替代虚拟司机
+
+    参数
+    ----------
+    officer : 调度员对象
+    table : 司机与乘客的绑定表
+
+    返回
+    ----------
+    table : 新的司机与乘客的绑定表
+    """
     maxtrix_drivers = list(set([(i[1]["id"],i[1]["sites"]) for i in table]))
     maxtrix_drivers.sort(key=lambda e:e[1])
     maxtrix_drivers = [i[0] for i in maxtrix_drivers]
@@ -179,10 +241,17 @@ def fill_in_drivers(officer, table):
 
 
 # %%
-def run(debug=True):
+def run(debug=True, type='take'):
+    """
+    运行
+
+    参数
+    ----------
+    debug : 是否调试
+    """
     max_distance = 0.12  # 2km
     pdw = officer()
-    pdw.type = 'take'
+    pdw.type = type
     pdw.debug = debug
     pdw.update_users()
     pdw.update_drivers()
