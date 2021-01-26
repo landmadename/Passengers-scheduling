@@ -4,6 +4,12 @@
 给出乘客的坐标，司机的坐标和座位数等
 返回乘客与司机的绑定关系
 
+### 安装使用
+- 安装redis
+- git clone
+- 进入目录
+- pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple/
+- python main.py
 
 ### 从redis输入
 ```
@@ -88,4 +94,5 @@
     - 增加 requirements.txt
     - 增加 show.py 展示文件
 - 1.0 以redis队列与系统交换信息
-- 1.1 修改readme文档
+- 1.1.1 修改readme文档
+- 1.1.2 在readme中增加安装使用的内容
