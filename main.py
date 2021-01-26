@@ -11,8 +11,9 @@ from matplotlib import pyplot as plt
 from sklearn.cluster import KMeans
 import copy
 
-from load_user_data import load_user_data
-from load_driver_data import load_driver_data, load_matrix_drivers
+# from load_user_data import load_user_data
+# from load_driver_data import load_driver_data, load_matrix_drivers
+import redis_api
 import caculate
 
 
@@ -21,19 +22,24 @@ class officer(object):
     """
     调度员对象
     """
-    def __init__(self):
-        self.type = ""
     def update_map(self):
         self.the_maps = caculate.kmeans(self.users)
-    def update_users(self):
-        self.users = load_user_data()
+    def load_data(self):
+        self.users, self.drivers, self.max_distance, self.type = redis_api.pop()
         self.users_backup = copy.deepcopy(self.users)
-    def update_drivers(self):
-        self.drivers = load_driver_data()
         self.sites_count = sorted([i["sites"] for i in self.drivers])
         if (self.type == 'send'):
             self.matrix_drivers = load_matrix_drivers(self.users)
         self.drivers_backup = copy.deepcopy(self.drivers)
+    # def update_users(self):
+    #     self.users = load_user_data()
+    #     self.users_backup = copy.deepcopy(self.users)
+    # def update_drivers(self):
+    #     self.drivers = load_driver_data()
+    #     self.sites_count = sorted([i["sites"] for i in self.drivers])
+    #     if (self.type == 'send'):
+    #         self.matrix_drivers = load_matrix_drivers(self.users)
+    #     self.drivers_backup = copy.deepcopy(self.drivers)
 
 
 # %%
@@ -50,7 +56,7 @@ def draw(officer, table):
     x,y = zip(*coordinates)
     plt.scatter(x,y)
     # 画出所有司机的位置
-    if officer.type == 'take':
+    if officer.type == 'receive':
         coordinates = [i["coordinate"] for i in officer.drivers_backup]
         x,y = zip(*coordinates)
         plt.scatter(x,y,c = 'y')
@@ -78,13 +84,14 @@ def kmeans_distribute(officer):
     table : 司机与乘客的绑定表
     """
     table = []
+    if officer.debug: draw(officer, table)
     while(officer.users != []):
         officer.update_map()
         # print(officer.the_maps)
         user_box = []
         # 取出一个中心点和最近的司机
         center = officer.the_maps.pop(0)
-        if (officer.type == "take"):
+        if (officer.type == "receive"):
             closest_driver = caculate.find_closest_obj(center, officer.drivers)
             officer.drivers.remove(closest_driver)
         elif (officer.type == "send"):
@@ -193,7 +200,7 @@ def handel_too_far(officer, table, max_distance):
     ----------
     table : 新的司机与乘客的绑定表
     """
-    too_far_users = [i for i in table if caculate.geodesic(i[0],i[1])>max_distance]
+    too_far_users = [i[0] for i in table if caculate.geodesic(i[0],i[1])>max_distance]
     while (too_far_users != []):
         # 从table里去掉太远的点，送回用户池
         officer.users = copy.deepcopy(too_far_users)
@@ -201,7 +208,9 @@ def handel_too_far(officer, table, max_distance):
         # 重新分配太远的点，追加在原表后面
         too_far=kmeans_distribute(officer)
         table = table+too_far
-        too_far_users = [i for i in table if caculate.geodesic(i[0],i[1])>max_distance]
+        if too_far_users == [i[0] for i in table if caculate.geodesic(i[0],i[1])>max_distance]:
+            break
+        too_far_users = [i[0] for i in table if caculate.geodesic(i[0],i[1])>max_distance]
     # 绘图
     if officer.debug: draw(officer, table)
     return table
@@ -241,7 +250,7 @@ def fill_in_drivers(officer, table):
 
 
 # %%
-def run(debug=True, type='take'):
+def run(debug=True):
     """
     运行
 
@@ -249,21 +258,19 @@ def run(debug=True, type='take'):
     ----------
     debug : 是否调试
     """
-    max_distance = 0.12  # 2km
     pdw = officer()
-    pdw.type = type
+    pdw.load_data()
     pdw.debug = debug
-    pdw.update_users()
-    pdw.update_drivers()
     table = kmeans_distribute(pdw)
     table = optimize(pdw, table)
-    table = handel_too_far(pdw, table, max_distance)
+    table = handel_too_far(pdw, table, pdw.max_distance)
     if pdw.type == 'send':
         table = fill_in_drivers(pdw, table)
+    redis_api.push(table)
     return table
 
 
 # %%
-# table = run()
+table = run(False)
 
 

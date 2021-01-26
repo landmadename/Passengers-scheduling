@@ -12,7 +12,7 @@ def load_driver_data():
     drivers = []
     for e,i in enumerate(coordinates):
         driver = {
-            "id" : e,
+            "driver_id" : e,
             "coordinate" : i,
             # "order" : e,
             "sites" : random.choice([4,6])
