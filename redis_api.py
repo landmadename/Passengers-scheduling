@@ -1,9 +1,10 @@
 import redis
 import json
+import collections
 
 def push(table):
     r = redis.Redis(host='localhost', port=6379, decode_responses=True)
-    r.lpush('table', str(table))
+    r.lpush('table', str(list(collections.Counter([(i[0]['id'], i[1]['id']) for i in table]).items())))
 
 def pop():
     r = redis.Redis(host='localhost', port=6379, decode_responses=True)
