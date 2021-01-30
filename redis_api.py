@@ -4,11 +4,14 @@ import collections
 
 def push(table):
     r = redis.Redis(host='localhost', port=6379, decode_responses=True)
-    r.lpush('table', str(list(collections.Counter([(i[0]['id'], i[1]['id']) for i in table]).items())))
+    r.lpush('table', json.dumps(str(list(collections.Counter([(i[0]['id'], i[1]['id']) for i in table]).items()))))
 
 def pop():
     r = redis.Redis(host='localhost', port=6379, decode_responses=True)
-    data = json.loads(r.lpop('data'))
+    data = r.lpop('data')
+    if data==None:
+        raise RuntimeError("No data in Redis")
+    data = json.loads(data)
 
     users = []
     drivers = []

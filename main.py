@@ -64,8 +64,8 @@ def draw(officer, table):
     for user,driver in table:
         x,y = zip(user["coordinate"],driver["coordinate"])
         plt.plot(x,y,color='b')
-    plt.xticks(np.arange(104.000,104.150,0.025))
-    plt.yticks(np.arange(30.600,30.750,0.025))
+    # plt.xticks(np.arange(104.000,104.150,0.025))
+    # plt.yticks(np.arange(30.600,30.750,0.025))
     plt.gca().set_aspect(1)
     plt.show()
 
@@ -271,6 +271,6 @@ def run(debug=True):
 
 
 # %%
-table = run(False)
+table = run(True)
 
 
